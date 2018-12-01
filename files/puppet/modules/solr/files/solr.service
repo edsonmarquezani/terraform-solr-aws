@@ -1,0 +1,29 @@
+[Unit]
+Description=Solr
+After=docker.service zookeeper.service
+Requires=docker.service zookeeper.service
+
+[Service]
+Environment=CONTAINER_NAME=solr
+Environment=NETWORK_NAME=default
+Environment=IMAGE=solr
+Environment=HOST_DATA_HOME=/mnt/data/solr
+Environment=SOLR_HOME=/opt/solr/server/solr
+Environment=SOLR_DATA_HOME=/var/solr
+Environment=HOST_LOGS_DIR=/mnt/data/logs
+Environment=SOLR_LOGS_DIR=/var/log/solr
+Environment=SOLR_PORT1=8983
+Environment=SOLR_MODE=solrcloud
+Environment=SOLR_ZK_CLIENT_TIMEOUT=15000
+Environment=GC_TUNE="-XX:+UseG1GC\ -XX:+PerfDisableSharedMem\ -XX:+ParallelRefProcEnabled\ -XX:G1HeapRegionSize=8m\ -XX:MaxGCPauseMillis=250\ -XX:InitiatingHeapOccupancyPercent=75\ -XX:+UseLargePages\ -XX:+AggressiveOpts"
+
+EnvironmentFile=/etc/sysconfig/terraform-vars
+
+TimeoutStartSec=300
+Restart=on-failure
+
+ExecStartPre=-/usr/bin/docker stop ${CONTAINER_NAME}
+ExecStartPre=-/usr/bin/docker rm -f ${CONTAINER_NAME}
+ExecStartPre=/usr/bin/docker pull ${IMAGE}
+ExecStart=/bin/bash -c "/usr/bin/docker run --net=host --name ${CONTAINER_NAME} -v ${HOST_LOGS_DIR}:${SOLR_LOGS_DIR} -v ${HOST_DATA_HOME}/data:${SOLR_DATA_HOME} -v ${HOST_DATA_HOME}/home:${SOLR_HOME} -e GC_TUNE=\"${GC_TUNE}\" -e SOLR_DATA_HOME=${SOLR_DATA_HOME} -e SOLR_LOGS_DIR=${SOLR_LOGS_DIR} -e SOLR_HEAP=${SOLR_HEAP_SIZE} -e SOLR_MODE:${SOLR_MODE} -e SOLR_ZK_CLIENT_TIMEOUT:${SOLR_ZK_CLIENT_TIMEOUT} ${IMAGE}:${SOLR_VERSION} solr start -z ${ZOOKEEPER_CONNECT} -noprompt -f"
+ExecStop=/usr/bin/docker stop ${CONTAINER_NAME}

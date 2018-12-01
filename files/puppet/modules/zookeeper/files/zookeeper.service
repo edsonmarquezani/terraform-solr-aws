@@ -1,0 +1,25 @@
+[Unit]
+Description=Zookeeper
+After=docker.service
+Requires=docker.service
+
+[Service]
+EnvironmentFile=/etc/sysconfig/zookeeper
+EnvironmentFile=/etc/sysconfig/terraform-vars
+
+Environment=CONTAINER_NAME=zookeeper
+Environment=IMAGE=zookeeper
+Environment=PATH_DATA_HOST=/mnt/data/zookeeper
+Environment=ZOOKEEPER_PORT1=2181
+Environment=ZOOKEEPER_PORT2=2888
+Environment=ZOOKEEPER_PORT3=3888
+
+TimeoutStartSec=300
+Restart=on-failure
+
+ExecStartPre=-/usr/bin/docker stop ${CONTAINER_NAME}
+ExecStartPre=-/usr/bin/docker rm -f ${CONTAINER_NAME}
+ExecStartPre=/bin/rm -f ${PATH_DATA_HOST}/myid
+ExecStartPre=/usr/bin/docker pull ${IMAGE}
+ExecStart=/bin/bash -c "/usr/bin/docker run --net=host --name ${CONTAINER_NAME} -v ${PATH_DATA_HOST}/data:/data -v ${PATH_DATA_HOST}/datalog:/datalog -e ZOO_MY_ID=${ZOO_MY_ID} -e ZOO_PORT=${ZOOKEEPER_PORT1} -e ZOO_SERVERS=\"${ZOO_SERVERS}\" ${IMAGE}:${ZOOKEEPER_VERSION}"
+ExecStop=/usr/bin/docker stop ${CONTAINER_NAME}
